@@ -34,3 +34,4 @@ jobs:
         with:
           workspaces: src-tauri
       - run: cargo build --manifest-path src-tauri/Cargo.toml
+      - run: cargo test --lib --manifest-path src-tauri/Cargo.toml

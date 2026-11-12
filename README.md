@@ -1,6 +1,7 @@
 # MD Viewer
 
 ![CI](https://github.com/Dominga/md-viewer/actions/workflows/ci.yml/badge.svg)
+[![Release](https://github.com/Dominga/md-viewer/actions/workflows/release.yml/badge.svg)](https://github.com/Dominga/md-viewer/releases)
 
 A fast, read-only Markdown viewer for local folders — a VS Code-like tree on
 the left, a clean reading surface on the right. Built with Tauri 2, React and
@@ -36,6 +37,20 @@ files: editing is delegated to whatever editor you already use.
   friends; override with `$MDV_EDITOR`.
 - **Light and dark themes**, session restore, and a CLI that can deep-link into
   a single note.
+
+## Download
+
+Prebuilt bundles live on the [releases page](https://github.com/Dominga/md-viewer/releases/latest):
+
+| Platform | Packages |
+| --- | --- |
+| Linux | `.deb`, `.rpm`, `.AppImage` |
+| Windows | `.msi`, NSIS `.exe` |
+
+The builds are unsigned: Windows SmartScreen warns on first launch, and the
+AppImage needs `chmod +x` before running. Versions are bumped automatically on
+every merge to `main` — the `Release` workflow derives the next number from the
+existing tags, builds both platforms and publishes the artifacts.
 
 ## Requirements
 
