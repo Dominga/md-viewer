@@ -64,6 +64,12 @@ one `fs-change` event with vault-relative paths. Editor "save" usually produces
 several events (write, rename, attribute change), which would otherwise cause a
 burst of reloads.
 
+Only content-changing events are forwarded (`Create`, `Remove`,
+`Modify::Data`, `Modify::Name`). Access events are dropped on purpose: the
+viewer reads the vault itself, and reacting to those reads would reload the
+document, which produces another read — an endless loop that shows up as a
+flickering page.
+
 The frontend reacts per path:
 
 - invalidate the cached blob for that path (images reload),

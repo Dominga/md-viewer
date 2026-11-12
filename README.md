@@ -98,7 +98,7 @@ works as well; screenshots in this repository were taken that way.
 
 | Variable | Description |
 | --- | --- |
-| `MDV_EDITOR` | Editor command used by **Open in editor**, e.g. `code -g` or `kate`. Falls back to `$VISUAL`, `$EDITOR`, then auto-detection. |
+| `MDV_EDITOR` | Editor command used by **Open in editor**, e.g. `code -g` or `kate`. Without it the button uses the system default application for `text/plain` — Kate on KDE, Notepad on Windows, TextEdit on macOS — then `$VISUAL`/`$EDITOR` (GUI editors only), then a built-in list of common editors. |
 
 ## Project layout
 

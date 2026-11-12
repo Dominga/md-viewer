@@ -4,6 +4,7 @@
 //! and emitted to the webview as a single `fs-change` event carrying paths
 //! relative to the vault root. The frontend decides what to refresh.
 
+use notify::event::{EventKind, ModifyKind};
 use notify::{RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -23,6 +24,19 @@ fn is_ignored(path: &Path) -> bool {
     })
 }
 
+/// Only content-changing events matter. Reads (`Access`) and metadata-only
+/// changes are dropped: the viewer itself reads the vault, and reacting to its
+/// own reads would make it reload files forever.
+fn is_content_change(kind: &EventKind) -> bool {
+    matches!(
+        kind,
+        EventKind::Create(_)
+            | EventKind::Remove(_)
+            | EventKind::Modify(ModifyKind::Data(_))
+            | EventKind::Modify(ModifyKind::Name(_))
+    )
+}
+
 pub fn start(app: AppHandle, root: PathBuf) -> Result<notify::RecommendedWatcher, String> {
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = notify::recommended_watcher(move |res| {
@@ -39,6 +53,9 @@ pub fn start(app: AppHandle, root: PathBuf) -> Result<notify::RecommendedWatcher
         loop {
             match rx.recv_timeout(QUIET_PERIOD) {
                 Ok(Ok(event)) => {
+                    if !is_content_change(&event.kind) {
+                        continue;
+                    }
                     for path in event.paths {
                         if !is_ignored(&path) {
                             pending.insert(path);
