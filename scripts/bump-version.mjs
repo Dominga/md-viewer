@@ -46,3 +46,11 @@ update("src-tauri/tauri.conf.json", (text) => {
 update("src-tauri/Cargo.toml", (text) =>
   text.replace(/^version = "[^"]*"$/m, `version = "${version}"`),
 );
+
+// Cargo records the workspace package version in the lockfile as well.
+update("src-tauri/Cargo.lock", (text) =>
+  text.replace(
+    /(name = "md-viewer"\nversion = ")[^"]*(")/,
+    `$1${version}$2`,
+  ),
+);

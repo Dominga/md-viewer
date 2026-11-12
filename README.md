@@ -47,6 +47,9 @@ Prebuilt bundles live on the [releases page](https://github.com/Dominga/md-viewe
 | Linux | `.deb`, `.rpm`, `.AppImage` |
 | Windows | `.msi`, NSIS `.exe` |
 
+Installing the `.deb` or `.rpm` adds MD Viewer to the application menu and
+registers it as a viewer for `.md` files (`text/markdown`).
+
 The builds are unsigned: Windows SmartScreen warns on first launch, and the
 AppImage needs `chmod +x` before running. Versions are bumped automatically on
 every merge to `main` — the `Release` workflow derives the next number from the
