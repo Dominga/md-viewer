@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Markdown viewer with a directory tree"
 authors = ["lex"]
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/Dominga/md-viewer.git"
 rust-version = "1.77"
 
 [lib]

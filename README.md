@@ -1,5 +1,7 @@
 # MD Viewer
 
+![CI](https://github.com/Dominga/md-viewer/actions/workflows/ci.yml/badge.svg)
+
 A fast, read-only Markdown viewer for local folders — a VS Code-like tree on
 the left, a clean reading surface on the right. Built with Tauri 2, React and
 Rust, so it stays a small native window instead of a browser tab.
