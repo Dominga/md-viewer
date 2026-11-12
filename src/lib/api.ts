@@ -26,6 +26,14 @@ export interface VaultInfo {
   name: string;
 }
 
+/** A vault (and optionally a file) requested on the command line. */
+export interface StartupInfo {
+  ready: boolean;
+  root: string | null;
+  name: string | null;
+  file: string | null;
+}
+
 /**
  * Thin, typed wrapper around the Tauri commands. This is the only module that
  * talks to the backend, which keeps the UI independent of the IPC layer.
@@ -40,6 +48,6 @@ export const api = {
   editorLabel: () => invoke<string | null>("editor_label"),
   openExternal: (url: string) => invoke<void>("open_external", { url }),
   openPathOs: (rel: string) => invoke<void>("open_path_os", { rel }),
-  takePendingFile: () => invoke<string | null>("take_pending_file"),
+  takeStartup: () => invoke<StartupInfo>("take_startup"),
   currentVault: () => invoke<VaultInfo | null>("current_vault"),
 };

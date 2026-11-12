@@ -7,6 +7,7 @@
 
 use serde::Serialize;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 use std::time::UNIX_EPOCH;
 
@@ -37,11 +38,21 @@ pub struct Vault {
     pub watcher: notify::RecommendedWatcher,
 }
 
+/// A vault (and optionally a file) requested on the command line. The frontend
+/// takes it once and opens it, which keeps start-up free of races between the
+/// Rust `setup` hook and the first render.
+pub struct Startup {
+    pub root: PathBuf,
+    pub file: Option<String>,
+}
+
 #[derive(Default)]
 pub struct AppState {
     pub vault: Mutex<Option<Vault>>,
-    /// File to open right after start-up, taken from the command line.
-    pub pending_file: Mutex<Option<String>>,
+    pub startup: Mutex<Option<Startup>>,
+    /// Set once `setup` has parsed the command line, so the frontend knows
+    /// whether waiting for a start-up request makes sense at all.
+    pub startup_ready: AtomicBool,
 }
 
 #[derive(Serialize, Clone)]

@@ -75,11 +75,41 @@ fn editor_label() -> Option<String> {
     editor::detect().map(|e| e.label)
 }
 
-/// Returns the file passed on the command line, if any, and clears it so it is
-/// only opened once.
+/// Start-up request for the frontend: `ready` says the command line has been
+/// parsed, the rest is what to open (nothing, when the app was launched bare).
+#[derive(serde::Serialize)]
+struct StartupInfo {
+    ready: bool,
+    root: Option<String>,
+    name: Option<String>,
+    file: Option<String>,
+}
+
+/// Returns the vault passed on the command line exactly once.
 #[tauri::command]
-fn take_pending_file(state: State<'_, AppState>) -> Option<String> {
-    state.pending_file.lock().ok().and_then(|mut guard| guard.take())
+fn take_startup(state: State<'_, AppState>) -> StartupInfo {
+    use std::sync::atomic::Ordering;
+
+    let ready = state.startup_ready.load(Ordering::SeqCst);
+    let startup = state
+        .startup
+        .lock()
+        .ok()
+        .and_then(|mut guard| if ready { guard.take() } else { None });
+
+    StartupInfo {
+        ready,
+        root: startup
+            .as_ref()
+            .map(|s| s.root.to_string_lossy().to_string()),
+        name: startup.as_ref().map(|s| {
+            s.root
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| s.root.display().to_string())
+        }),
+        file: startup.and_then(|s| s.file),
+    }
 }
 
 /// The vault that is already open, for example when it was passed on the
@@ -113,6 +143,14 @@ fn open_path_os(state: State<'_, AppState>, rel: String) -> Result<(), String> {
     open::that(path).map_err(|e| e.to_string())
 }
 
+
+/// Store the command-line request for the frontend to pick up.
+fn record_startup(state: &AppState, root: PathBuf, file: Option<String>) {
+    if let Ok(mut guard) = state.startup.lock() {
+        *guard = Some(state::Startup { root, file });
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -126,38 +164,39 @@ pub fn run() {
             read_asset,
             open_in_editor,
             editor_label,
-            take_pending_file,
+            take_startup,
             current_vault,
             open_external,
             open_path_os
         ])
         .setup(|app| {
-            // `md-viewer /vault [file.md]` or `md-viewer /vault/my-note.md`
+            // `md-viewer /vault [file.md]` or `md-viewer /vault/my-note.md`.
+            // Only record the request here; opening it is the frontend's job,
+            // so a slow watcher setup can never race the first render.
             let mut args = std::env::args().skip(1);
             if let Some(first) = args.next() {
                 let path = PathBuf::from(&first);
-                let (vault, pending) = if path.is_file() {
-                    let pending = path
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string());
-                    (path.parent().map(|p| p.to_path_buf()), pending)
+                let (root, file) = if path.is_file() {
+                    let file = path.file_name().map(|n| n.to_string_lossy().to_string());
+                    (path.parent().map(|p| p.to_path_buf()), file)
                 } else if path.is_dir() {
                     (Some(path), args.next())
                 } else {
                     (None, None)
                 };
 
-                if let Some(vault) = vault {
-                    if open_vault_impl(app.handle(), &vault.to_string_lossy()).is_ok() {
-                        if let Some(pending) = pending {
-                            let rel = pending.trim_start_matches("./").trim_start_matches('/');
-                            if let Ok(mut guard) = app.state::<AppState>().pending_file.lock() {
-                                *guard = Some(rel.to_string());
-                            }
-                        }
+                if let Some(root) = root {
+                    if let Ok(root) = root.canonicalize() {
+                        let file = file
+                            .map(|f| f.trim_start_matches("./").trim_start_matches('/').to_string());
+                        record_startup(&app.state::<AppState>(), root, file);
                     }
                 }
             }
+
+            app.state::<AppState>()
+                .startup_ready
+                .store(true, std::sync::atomic::Ordering::SeqCst);
             Ok(())
         })
         .run(tauri::generate_context!())

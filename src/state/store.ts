@@ -146,10 +146,26 @@ export const useStore = create<ViewerState>()(
           .then((label) => set({ editorLabel: label }))
           .catch(() => set({ editorLabel: null }));
 
-        // A folder passed on the command line wins over the restored session.
+        // The command line wins over the restored session. The backend records
+        // it in `setup`, which may finish slightly after the first render, so
+        // wait until it reports that the command line has been parsed.
+        let startup = await api.takeStartup().catch(() => null);
+        for (let attempt = 0; startup && !startup.ready && attempt < 40; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 25));
+          startup = await api.takeStartup().catch(() => null);
+        }
+
+        if (startup?.root) {
+          await get().openVault(startup.root, false);
+          if (startup.file) await get().openFile(startup.file);
+          return;
+        }
+
+        // A webview reload keeps the vault open in the backend; restore the
+        // previous tabs in that case instead of starting from scratch.
         const current = await api.currentVault().catch(() => null);
         if (current) {
-          await get().openVault(current.root, false);
+          await get().openVault(current.root, true);
           return;
         }
 
@@ -206,9 +222,6 @@ export const useStore = create<ViewerState>()(
             const active = get().activePath;
             if (active) get().reveal(active);
           }
-
-          const pending = await api.takePendingFile().catch(() => null);
-          if (pending) await get().openFile(pending);
         } catch (error) {
           set({ root: null, rootName: null, tabs: [], activePath: null, docs: {} });
           get().showToast(String(error), "error");
